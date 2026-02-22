@@ -25,6 +25,8 @@ public class ApplicationDbContext : DbContext
     // Agrega tus DbSets aquí, por ejemplo:
     public DbSet<Project> Projects { get; set; }
     public DbSet<User> Users { get; set; }
+    public DbSet<Skill> Skills { get; set; }
+    public DbSet<Technology> Technologies { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -38,6 +40,12 @@ public class ApplicationDbContext : DbContext
             .HasOne(p => p.User)
             .WithMany(p => p.Projects)
             .HasForeignKey(p => new { p.UserId})
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Skill>()
+            .HasOne(s => s.User)
+            .WithMany(u => u.Skills)
+            .HasForeignKey(s => new { s.UserId })
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

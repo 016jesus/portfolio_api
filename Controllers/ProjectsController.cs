@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using portfolio_api.Data;
@@ -24,11 +25,21 @@ namespace portfolio_api.Controllers
         /// </summary>
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public async Task<ActionResult<IEnumerable<ProjectDto>>> GetProjects()
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<IEnumerable<ProjectDto>>> GetProjects([FromQuery] string username)
         {
             try
             {
+                if (string.IsNullOrWhiteSpace(username))
+                    return BadRequest("El username es requerido");
+
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+                if (user == null)
+                    return NotFound("Usuario no encontrado");
+
                 var projects = await _context.Projects
+                    .Where(p => p.UserId == user.Id)
                     .Include(p => p.User)
                     .ToListAsync();
 
@@ -46,14 +57,22 @@ namespace portfolio_api.Controllers
         /// </summary>
         [HttpGet("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<ProjectDto>> GetProject(Guid id)
+        public async Task<ActionResult<ProjectDto>> GetProject(Guid id, [FromQuery] string username)
         {
             try
             {
+                if (string.IsNullOrWhiteSpace(username))
+                    return BadRequest("El username es requerido");
+
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+                if (user == null)
+                    return NotFound("Usuario no encontrado");
+
                 var project = await _context.Projects
                     .Include(p => p.User)
-                    .FirstOrDefaultAsync(p => p.Id == id);
+                    .FirstOrDefaultAsync(p => p.Id == id && p.UserId == user.Id);
 
                 if (project == null)
                     return NotFound($"Proyecto con ID {id} no encontrado");
@@ -101,6 +120,7 @@ namespace portfolio_api.Controllers
         /// Crear un nuevo proyecto
         /// </summary>
         [HttpPost]
+        [Authorize]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -148,6 +168,7 @@ namespace portfolio_api.Controllers
         /// Actualizar un proyecto existente
         /// </summary>
         [HttpPut("{id}")]
+        [Authorize]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -184,6 +205,7 @@ namespace portfolio_api.Controllers
         /// Eliminar un proyecto
         /// </summary>
         [HttpDelete("{id}")]
+        [Authorize]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteProject(Guid id)

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using portfolio_api.Data;
@@ -72,6 +73,7 @@ namespace portfolio_api.Controllers
         /// Crear un nuevo usuario
         /// </summary>
         [HttpPost]
+        [Authorize]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<UserDto>> CreateUser([FromBody] CreateUserDto createUserDto)
@@ -93,7 +95,8 @@ namespace portfolio_api.Controllers
                     Id = Guid.NewGuid(),
                     Username = createUserDto.Username,
                     Email = createUserDto.Email,
-                    Name = createUserDto.Name
+                    Name = createUserDto.Name,
+                    Password = createUserDto.Password
                 };
 
                 _context.Users.Add(user);
@@ -114,6 +117,7 @@ namespace portfolio_api.Controllers
         /// Actualizar un usuario existente
         /// </summary>
         [HttpPut("{id}")]
+        [Authorize]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -157,6 +161,7 @@ namespace portfolio_api.Controllers
         /// Eliminar un usuario y sus proyectos asociados
         /// </summary>
         [HttpDelete("{id}")]
+        [Authorize]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteUser(Guid id)
@@ -194,6 +199,4 @@ namespace portfolio_api.Controllers
         }
     }
 
-    // DTOs
-    
 }
