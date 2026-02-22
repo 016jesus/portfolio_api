@@ -32,10 +32,8 @@ public class Project
     [Required]
     public Guid UserId { get; set; }
 
-    [Required]
-    public string UserName { get; set; } = string.Empty;
-
     //propiedad de navegacion (mapea la tabla que se referencia)
     public User User { get; set; } = null!;
+    public ICollection<Technology> Technologies { get; set; } = new List<Technology>();
 
 }

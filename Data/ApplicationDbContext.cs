@@ -32,12 +32,12 @@ public class ApplicationDbContext : DbContext
 
         // llave compuesta para User (Id, Username)
         modelBuilder.Entity<User>()
-            .HasKey(u => new { u.Id, u.Username });
+            .HasKey(u => new { u.Id } );
 
         modelBuilder.Entity<Project>()
             .HasOne(p => p.User)
             .WithMany(p => p.Projects)
-            .HasForeignKey(p => new { p.UserId, p.UserName })
+            .HasForeignKey(p => new { p.UserId})
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

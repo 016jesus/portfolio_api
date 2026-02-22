@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using portfolio_api.Data;
 using portfolio_api.Models;
+using portfolio_api.DTOs;
 
 namespace portfolio_api.Controllers
 {
@@ -83,7 +84,7 @@ namespace portfolio_api.Controllers
                     return NotFound("Usuario no encontrado");
 
                 var projects = await _context.Projects
-                    .Where(p => p.UserId == userId && p.UserName == username)
+                    .Where(p => p.UserId == userId)
                     .Include(p => p.User)
                     .ToListAsync();
 
@@ -126,7 +127,6 @@ namespace portfolio_api.Controllers
                     image = createProjectDto.Image,
                     CreationDate = DateTime.UtcNow,
                     UserId = createProjectDto.UserId,
-                    UserName = createProjectDto.UserName,
                     User = user
                 };
 
@@ -221,43 +221,8 @@ namespace portfolio_api.Controllers
                 CreationDate = project.CreationDate,
                 EndDate = project.EndDate,
                 UserId = project.UserId,
-                UserName = project.UserName,
                 UserName_Display = project.User?.Name ?? "Desconocido"
             };
         }
-    }
-
-    // DTOs
-    public class ProjectDto
-    {
-        public Guid Id { get; set; }
-        public string Title { get; set; } = string.Empty;
-        public string? Description { get; set; }
-        public string? Url { get; set; }
-        public string? Image { get; set; }
-        public DateTime CreationDate { get; set; }
-        public DateTime? EndDate { get; set; }
-        public Guid UserId { get; set; }
-        public string UserName { get; set; } = string.Empty;
-        public string UserName_Display { get; set; } = string.Empty;
-    }
-
-    public class CreateProjectDto
-    {
-        public required string Title { get; set; }
-        public string? Description { get; set; }
-        public string? Url { get; set; }
-        public string? Image { get; set; }
-        public required Guid UserId { get; set; }
-        public required string UserName { get; set; }
-    }
-
-    public class UpdateProjectDto
-    {
-        public required string Title { get; set; }
-        public string? Description { get; set; }
-        public string? Url { get; set; }
-        public string? Image { get; set; }
-        public DateTime? EndDate { get; set; }
     }
 }

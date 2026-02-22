@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using portfolio_api.Data;
 using portfolio_api.Models;
+using portfolio_api.DTOs;
+
 
 namespace portfolio_api.Controllers
 {
@@ -90,6 +92,7 @@ namespace portfolio_api.Controllers
                 {
                     Id = Guid.NewGuid(),
                     Username = createUserDto.Username,
+                    Email = createUserDto.Email,
                     Name = createUserDto.Name
                 };
 
@@ -192,23 +195,5 @@ namespace portfolio_api.Controllers
     }
 
     // DTOs
-    public class UserDto
-    {
-        public Guid Id { get; set; }
-        public string Username { get; set; } = string.Empty;
-        public string Name { get; set; } = string.Empty;
-        public int ProjectCount { get; set; }
-    }
-
-    public class CreateUserDto
-    {
-        public required string Username { get; set; }
-        public required string Name { get; set; }
-    }
-
-    public class UpdateUserDto
-    {
-        public required string Username { get; set; }
-        public required string Name { get; set; }
-    }
+    
 }
