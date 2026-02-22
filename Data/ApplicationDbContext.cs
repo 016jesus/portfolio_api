@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using portfolio_api.Models;
 
+
 namespace portfolio_api.Data;
 
 public class ApplicationDbContext : DbContext
@@ -8,6 +9,17 @@ public class ApplicationDbContext : DbContext
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
     {
+    }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        base.OnConfiguring(optionsBuilder);
+
+        // Aumentar timeout para comandos
+        if (optionsBuilder.IsConfigured)
+        {
+            optionsBuilder.UseNpgsql(o => o.CommandTimeout(120));
+        }
     }
 
     // Agrega tus DbSets aquí, por ejemplo:
