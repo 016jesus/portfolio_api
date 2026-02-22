@@ -15,11 +15,13 @@ namespace portfolio_api.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<SkillsController> _logger;
+        private readonly ITenantProvider _tenantProvider;
 
-        public SkillsController(ApplicationDbContext context, ILogger<SkillsController> logger)
+        public SkillsController(ApplicationDbContext context, ILogger<SkillsController> logger, ITenantProvider tenantProvider)
         {
             _context = context;
             _logger = logger;
+            _tenantProvider = tenantProvider;
         }
 
         /// <summary>
@@ -33,6 +35,9 @@ namespace portfolio_api.Controllers
         {
             try
             {
+                if (_tenantProvider.TenantId == null)
+                    return BadRequest("TenantId requerido");
+
                 if (string.IsNullOrWhiteSpace(username))
                     return BadRequest("El username es requerido");
 
@@ -64,6 +69,9 @@ namespace portfolio_api.Controllers
         {
             try
             {
+                if (_tenantProvider.TenantId == null)
+                    return BadRequest("TenantId requerido");
+
                 if (string.IsNullOrWhiteSpace(username))
                     return BadRequest("El username es requerido");
 
@@ -98,6 +106,9 @@ namespace portfolio_api.Controllers
         {
             try
             {
+                if (_tenantProvider.TenantId == null)
+                    return BadRequest("TenantId requerido");
+
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
 
@@ -110,7 +121,8 @@ namespace portfolio_api.Controllers
                     Id = Guid.NewGuid(),
                     Name = createSkillDto.Name,
                     Description = createSkillDto.Description ?? string.Empty,
-                    UserId = createSkillDto.UserId
+                    UserId = createSkillDto.UserId,
+                    TenantId = _tenantProvider.TenantId.Value
                 };
 
                 _context.Skills.Add(skill);
@@ -139,7 +151,10 @@ namespace portfolio_api.Controllers
         {
             try
             {
-                var skill = await _context.Skills.FindAsync(id);
+                if (_tenantProvider.TenantId == null)
+                    return BadRequest("TenantId requerido");
+
+                var skill = await _context.Skills.FirstOrDefaultAsync(s => s.Id == id);
 
                 if (skill == null)
                     return NotFound($"Skill con ID {id} no encontrada");
@@ -172,7 +187,10 @@ namespace portfolio_api.Controllers
         {
             try
             {
-                var skill = await _context.Skills.FindAsync(id);
+                if (_tenantProvider.TenantId == null)
+                    return BadRequest("TenantId requerido");
+
+                var skill = await _context.Skills.FirstOrDefaultAsync(s => s.Id == id);
 
                 if (skill == null)
                     return NotFound($"Skill con ID {id} no encontrada");

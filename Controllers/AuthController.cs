@@ -34,6 +34,10 @@ namespace portfolio_api.Controllers
         {
             try
             {
+                var tenantIdHeader = HttpContext.Request.Headers["X-Tenant-Id"].FirstOrDefault();
+                if (!Guid.TryParse(tenantIdHeader, out _))
+                    return BadRequest("TenantId requerido");
+
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
 

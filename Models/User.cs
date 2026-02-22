@@ -13,6 +13,9 @@ namespace portfolio_api.Models
         public Guid Id { get; set; } = Guid.NewGuid();
 
         [Required]
+        public Guid TenantId { get; set; }
+
+        [Required]
         public required string Username { get; set; }
 
         public string Provider { get; set; } = "local";

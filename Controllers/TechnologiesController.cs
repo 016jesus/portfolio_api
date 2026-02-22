@@ -13,11 +13,13 @@ namespace portfolio_api.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<TechnologiesController> _logger;
+        private readonly ITenantProvider _tenantProvider;
 
-        public TechnologiesController(ApplicationDbContext context, ILogger<TechnologiesController> logger)
+        public TechnologiesController(ApplicationDbContext context, ILogger<TechnologiesController> logger, ITenantProvider tenantProvider)
         {
             _context = context;
             _logger = logger;
+            _tenantProvider = tenantProvider;
         }
 
         /// <summary>
@@ -31,6 +33,9 @@ namespace portfolio_api.Controllers
         {
             try
             {
+                if (_tenantProvider.TenantId == null)
+                    return BadRequest("TenantId requerido");
+
                 if (string.IsNullOrWhiteSpace(username))
                     return BadRequest("El username es requerido");
 
@@ -61,6 +66,9 @@ namespace portfolio_api.Controllers
         {
             try
             {
+                if (_tenantProvider.TenantId == null)
+                    return BadRequest("TenantId requerido");
+
                 if (string.IsNullOrWhiteSpace(username))
                     return BadRequest("El username es requerido");
 
@@ -94,6 +102,9 @@ namespace portfolio_api.Controllers
         {
             try
             {
+                if (_tenantProvider.TenantId == null)
+                    return BadRequest("TenantId requerido");
+
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
 
@@ -101,7 +112,8 @@ namespace portfolio_api.Controllers
                 {
                     Id = Guid.NewGuid(),
                     Title = createTechnologyDto.Title,
-                    Icon = createTechnologyDto.Icon ?? string.Empty
+                    Icon = createTechnologyDto.Icon ?? string.Empty,
+                    TenantId = _tenantProvider.TenantId.Value
                 };
 
                 _context.Technologies.Add(technology);
@@ -130,7 +142,10 @@ namespace portfolio_api.Controllers
         {
             try
             {
-                var technology = await _context.Technologies.FindAsync(id);
+                if (_tenantProvider.TenantId == null)
+                    return BadRequest("TenantId requerido");
+
+                var technology = await _context.Technologies.FirstOrDefaultAsync(t => t.Id == id);
 
                 if (technology == null)
                     return NotFound($"Tecnología con ID {id} no encontrada");
@@ -163,7 +178,10 @@ namespace portfolio_api.Controllers
         {
             try
             {
-                var technology = await _context.Technologies.FindAsync(id);
+                if (_tenantProvider.TenantId == null)
+                    return BadRequest("TenantId requerido");
+
+                var technology = await _context.Technologies.FirstOrDefaultAsync(t => t.Id == id);
 
                 if (technology == null)
                     return NotFound($"Tecnología con ID {id} no encontrada");

@@ -9,6 +9,8 @@ namespace portfolio_api.Models
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public Guid Id { get; set; } = Guid.NewGuid();
         [Required]
+        public Guid TenantId { get; set; }
+        [Required]
         public string Title { get; set; } = string.Empty;
         public string Icon { get; set; } = string.Empty;
 

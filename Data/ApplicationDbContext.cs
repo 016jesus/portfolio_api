@@ -6,9 +6,12 @@ namespace portfolio_api.Data;
 
 public class ApplicationDbContext : DbContext
 {
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+    private readonly ITenantProvider _tenantProvider;
+
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, ITenantProvider tenantProvider)
         : base(options)
     {
+        _tenantProvider = tenantProvider;
     }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -32,7 +35,6 @@ public class ApplicationDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // llave compuesta para User (Id, Username)
         modelBuilder.Entity<User>()
             .HasKey(u => new { u.Id } );
 
@@ -47,5 +49,17 @@ public class ApplicationDbContext : DbContext
             .WithMany(u => u.Skills)
             .HasForeignKey(s => new { s.UserId })
             .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<User>()
+            .HasQueryFilter(u => _tenantProvider.TenantId != null && u.TenantId == _tenantProvider.TenantId.Value);
+
+        modelBuilder.Entity<Project>()
+            .HasQueryFilter(p => _tenantProvider.TenantId != null && p.TenantId == _tenantProvider.TenantId.Value);
+
+        modelBuilder.Entity<Skill>()
+            .HasQueryFilter(s => _tenantProvider.TenantId != null && s.TenantId == _tenantProvider.TenantId.Value);
+
+        modelBuilder.Entity<Technology>()
+            .HasQueryFilter(t => _tenantProvider.TenantId != null && t.TenantId == _tenantProvider.TenantId.Value);
     }
 }

@@ -14,11 +14,13 @@ namespace portfolio_api.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<UsersController> _logger;
+        private readonly ITenantProvider _tenantProvider;
 
-        public UsersController(ApplicationDbContext context, ILogger<UsersController> logger)
+        public UsersController(ApplicationDbContext context, ILogger<UsersController> logger, ITenantProvider tenantProvider)
         {
             _context = context;
             _logger = logger;
+            _tenantProvider = tenantProvider;
         }
 
         /// <summary>
@@ -30,6 +32,9 @@ namespace portfolio_api.Controllers
         {
             try
             {
+                if (_tenantProvider.TenantId == null)
+                    return BadRequest("TenantId requerido");
+
                 var users = await _context.Users
                     .Include(u => u.Projects)
                     .ToListAsync();
@@ -53,6 +58,9 @@ namespace portfolio_api.Controllers
         {
             try
             {
+                if (_tenantProvider.TenantId == null)
+                    return BadRequest("TenantId requerido");
+
                 var user = await _context.Users
                     .Include(u => u.Projects)
                     .FirstOrDefaultAsync(u => u.Id == id);
@@ -80,6 +88,9 @@ namespace portfolio_api.Controllers
         {
             try
             {
+                if (_tenantProvider.TenantId == null)
+                    return BadRequest("TenantId requerido");
+
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
 
@@ -96,7 +107,8 @@ namespace portfolio_api.Controllers
                     Username = createUserDto.Username,
                     Email = createUserDto.Email,
                     Name = createUserDto.Name,
-                    Password = createUserDto.Password
+                    Password = createUserDto.Password,
+                    TenantId = _tenantProvider.TenantId.Value
                 };
 
                 _context.Users.Add(user);
@@ -125,7 +137,10 @@ namespace portfolio_api.Controllers
         {
             try
             {
-                var user = await _context.Users.FindAsync(id);
+                if (_tenantProvider.TenantId == null)
+                    return BadRequest("TenantId requerido");
+
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
 
                 if (user == null)
                     return NotFound($"Usuario con ID {id} no encontrado");
@@ -168,7 +183,10 @@ namespace portfolio_api.Controllers
         {
             try
             {
-                var user = await _context.Users.FindAsync(id);
+                if (_tenantProvider.TenantId == null)
+                    return BadRequest("TenantId requerido");
+
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
 
                 if (user == null)
                     return NotFound($"Usuario con ID {id} no encontrado");

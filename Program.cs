@@ -1,6 +1,9 @@
 using System.Text;
 using DotNetEnv;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.OAuth;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.EntityFrameworkCore;
@@ -14,6 +17,8 @@ DotNetEnv.Env.Load();
 var connectionString = Environment.GetEnvironmentVariable("PORTGRES_CONNECTION");
 
 builder.Services.AddControllers();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ITenantProvider, HttpTenantProvider>();
 
 var jwtKey = builder.Configuration["Jwt:Key"]
     ?? Environment.GetEnvironmentVariable("JWT_SECRET")
@@ -25,7 +30,16 @@ if (string.IsNullOrWhiteSpace(jwtKey))
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "portfolio_api";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "portfolio_api";
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+var googleClientId = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID");
+var googleClientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET");
+var githubClientId = Environment.GetEnvironmentVariable("GITHUB_CLIENT_ID");
+var githubClientSecret = Environment.GetEnvironmentVariable("GITHUB_CLIENT_SECRET");
+
+builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
     .AddJwtBearer(options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
@@ -38,13 +52,34 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
             ClockSkew = TimeSpan.Zero
         };
+    })
+    .AddCookie("External")
+    .AddGoogle(options =>
+    {
+        options.SignInScheme = "External";
+        options.ClientId = googleClientId ?? string.Empty;
+        options.ClientSecret = googleClientSecret ?? string.Empty;
+    })
+    .AddOAuth("GitHub", options =>
+    {
+        options.SignInScheme = "External";
+        options.ClientId = githubClientId ?? string.Empty;
+        options.ClientSecret = githubClientSecret ?? string.Empty;
+        options.CallbackPath = "/signin-github";
+        options.AuthorizationEndpoint = "https://github.com/login/oauth/authorize";
+        options.TokenEndpoint = "https://github.com/login/oauth/access_token";
+        options.UserInformationEndpoint = "https://api.github.com/user";
+        options.Scope.Add("user:email");
+        options.SaveTokens = true;
     });
 
 builder.Services.AddAuthorization();
+builder.Services.AddHealthChecks();
 
 // Configurar Entity Framework Core
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
+    // Placeholder for patch application
 
 builder.Services.AddOpenApi();
 
@@ -67,5 +102,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHealthChecks("/health");
 
 app.Run();

@@ -13,11 +13,13 @@ namespace portfolio_api.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<ProjectsController> _logger;
+        private readonly ITenantProvider _tenantProvider;
 
-        public ProjectsController(ApplicationDbContext context, ILogger<ProjectsController> logger)
+        public ProjectsController(ApplicationDbContext context, ILogger<ProjectsController> logger, ITenantProvider tenantProvider)
         {
             _context = context;
             _logger = logger;
+            _tenantProvider = tenantProvider;
         }
 
         /// <summary>
@@ -31,6 +33,9 @@ namespace portfolio_api.Controllers
         {
             try
             {
+                if (_tenantProvider.TenantId == null)
+                    return BadRequest("TenantId requerido");
+
                 if (string.IsNullOrWhiteSpace(username))
                     return BadRequest("El username es requerido");
 
@@ -63,6 +68,9 @@ namespace portfolio_api.Controllers
         {
             try
             {
+                if (_tenantProvider.TenantId == null)
+                    return BadRequest("TenantId requerido");
+
                 if (string.IsNullOrWhiteSpace(username))
                     return BadRequest("El username es requerido");
 
@@ -128,6 +136,9 @@ namespace portfolio_api.Controllers
         {
             try
             {
+                if (_tenantProvider.TenantId == null)
+                    return BadRequest("TenantId requerido");
+
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
 
@@ -147,7 +158,8 @@ namespace portfolio_api.Controllers
                     image = createProjectDto.Image,
                     CreationDate = DateTime.UtcNow,
                     UserId = createProjectDto.UserId,
-                    User = user
+                    User = user,
+                    TenantId = _tenantProvider.TenantId.Value
                 };
 
                 _context.Projects.Add(project);
@@ -176,7 +188,10 @@ namespace portfolio_api.Controllers
         {
             try
             {
-                var project = await _context.Projects.FindAsync(id);
+                if (_tenantProvider.TenantId == null)
+                    return BadRequest("TenantId requerido");
+
+                var project = await _context.Projects.FirstOrDefaultAsync(p => p.Id == id);
 
                 if (project == null)
                     return NotFound($"Proyecto con ID {id} no encontrado");
@@ -212,7 +227,10 @@ namespace portfolio_api.Controllers
         {
             try
             {
-                var project = await _context.Projects.FindAsync(id);
+                if (_tenantProvider.TenantId == null)
+                    return BadRequest("TenantId requerido");
+
+                var project = await _context.Projects.FirstOrDefaultAsync(p => p.Id == id);
 
                 if (project == null)
                     return NotFound($"Proyecto con ID {id} no encontrado");

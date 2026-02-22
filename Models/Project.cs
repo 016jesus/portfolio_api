@@ -10,6 +10,9 @@ public class Project
     public Guid Id { get; set; } = Guid.NewGuid();
 
     [Required]
+    public Guid TenantId { get; set; }
+
+    [Required]
     [MaxLength(200)]
     public string Title { get; set; } = string.Empty;
 

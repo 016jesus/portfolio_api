@@ -9,6 +9,9 @@ namespace portfolio_api.Models
         public Guid Id { get; set; } = Guid.NewGuid();
 
         [Required]
+        public Guid TenantId { get; set; }
+
+        [Required]
         [MaxLength(100)]
         public string Name { get; set; } = string.Empty;
         [MaxLength(1500)]
