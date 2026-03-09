@@ -3,6 +3,7 @@
     public class UserDto
     {
         public Guid Id { get; set; }
+        public Guid TenantId { get; set; }
         public string Username { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public int ProjectCount { get; set; }

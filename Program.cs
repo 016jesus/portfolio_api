@@ -75,6 +75,23 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 builder.Services.AddHealthChecks();
+var corsOrigins = Environment.GetEnvironmentVariable("CORS_ORIGINS")
+    ?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+    ?? Array.Empty<string>();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("DefaultCors", policy =>
+    {
+       // if (corsOrigins.Length > 0)
+        //{
+            policy.WithOrigins("http://localhost:5173")
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials();
+        //}
+    });
+});
 
 // Configurar Entity Framework Core
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -98,6 +115,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseCors("DefaultCors");
 app.UseAuthentication();
 app.UseAuthorization();
 

@@ -29,11 +29,11 @@ namespace portfolio_api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<IEnumerable<ProjectDto>>> GetProjects([FromQuery] string username)
+        public async Task<ActionResult<IEnumerable<ProjectDto>>> GetProjects([FromQuery] string username, [FromQuery] string tenantId)
         {
             try
             {
-                if (_tenantProvider.TenantId == null)
+                if (string.IsNullOrWhiteSpace(tenantId))
                     return BadRequest("TenantId requerido");
 
                 if (string.IsNullOrWhiteSpace(username))
@@ -100,16 +100,18 @@ namespace portfolio_api.Controllers
         [HttpGet("user/{userId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<IEnumerable<ProjectDto>>> GetProjectsByUser(Guid userId, string username)
+        public async Task<ActionResult<IEnumerable<ProjectDto>>> GetProjectsByUser(string username)
         {
             try
             {
                 var user = await _context.Users
-                    .FirstOrDefaultAsync(u => u.Id == userId && u.Username == username);
+                    .FirstOrDefaultAsync(u => u.Username == username);
 
                 if (user == null)
                     return NotFound("Usuario no encontrado");
-
+                
+                var userId = user.Id;
+                Console.WriteLine(userId);
                 var projects = await _context.Projects
                     .Where(p => p.UserId == userId)
                     .Include(p => p.User)
@@ -119,7 +121,7 @@ namespace portfolio_api.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al obtener proyectos del usuario {UserId}", userId);
+                _logger.LogError(ex, "Error al obtener proyectos del usuario {username}", username);
                 return StatusCode(StatusCodes.Status500InternalServerError, "Error al obtener proyectos");
             }
         }

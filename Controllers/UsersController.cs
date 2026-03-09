@@ -49,30 +49,64 @@ namespace portfolio_api.Controllers
         }
 
         /// <summary>
-        /// Obtener un usuario específico por ID
+        /// Obtener perfil público por username (sin TenantId en header)
         /// </summary>
-        [HttpGet("{id}")]
+        [HttpGet("public/{username}")]
+        [AllowAnonymous]
         [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<UserDto>> GetUser(Guid id)
+        public async Task<ActionResult<UserDto>> GetPublicUser(string username)
         {
             try
             {
-                if (_tenantProvider.TenantId == null)
-                    return BadRequest("TenantId requerido");
+                if (string.IsNullOrWhiteSpace(username))
+                    return BadRequest("El username es requerido");
+
+                var user = await _context.Users
+                    .IgnoreQueryFilters()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(u => u.Username == username);
+
+                if (user == null)
+                    return NotFound("Usuario no encontrado");
+
+                var projectCount = await _context.Projects
+                    .IgnoreQueryFilters()
+                    .CountAsync(p => p.UserId == user.Id && p.TenantId == user.TenantId);
+
+                return Ok(MapToDto(user, projectCount));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener usuario público {Username}", username);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error al obtener usuario público");
+            }
+        }
+
+        /// <summary>
+        /// Obtener un usuario específico por ID o username
+        /// </summary>
+        [HttpGet("{value}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<UserDto>> GetUser(string value)
+        {
+            try
+            {
 
                 var user = await _context.Users
                     .Include(u => u.Projects)
-                    .FirstOrDefaultAsync(u => u.Id == id);
+                    .FirstOrDefaultAsync(u => (u.Id.ToString() == value || u.Username == value));
 
                 if (user == null)
-                    return NotFound($"Usuario con ID {id} no encontrado");
+                    return NotFound($"Usuario con ID {value} no encontrado");
 
                 return Ok(MapToDto(user));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al obtener usuario {UserId}", id);
+                _logger.LogError(ex, "Error al obtener usuario {UserId}", value);
                 return StatusCode(StatusCodes.Status500InternalServerError, "Error al obtener usuario");
             }
         }
@@ -81,18 +115,16 @@ namespace portfolio_api.Controllers
         /// Crear un nuevo usuario
         /// </summary>
         [HttpPost]
-        [Authorize]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<UserDto>> CreateUser([FromBody] CreateUserDto createUserDto)
         {
             try
             {
-                if (_tenantProvider.TenantId == null)
-                    return BadRequest("TenantId requerido");
-
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
+
+                var tenantId = _tenantProvider.TenantId ?? Guid.NewGuid();
 
                 // Verificar si el username ya existe
                 var existingUser = await _context.Users
@@ -108,7 +140,7 @@ namespace portfolio_api.Controllers
                     Email = createUserDto.Email,
                     Name = createUserDto.Name,
                     Password = createUserDto.Password,
-                    TenantId = _tenantProvider.TenantId.Value
+                    TenantId = tenantId
                 };
 
                 _context.Users.Add(user);
@@ -116,7 +148,7 @@ namespace portfolio_api.Controllers
 
                 _logger.LogInformation("Usuario creado: {UserId}", user.Id);
 
-                return CreatedAtAction(nameof(GetUser), new { id = user.Id }, MapToDto(user));
+                return CreatedAtAction(nameof(GetUser), new { value = user.Id }, MapToDto(user));
             }
             catch (Exception ex)
             {
@@ -207,12 +239,18 @@ namespace portfolio_api.Controllers
 
         private static UserDto MapToDto(User user)
         {
+            return MapToDto(user, user.Projects?.Count ?? 0);
+        }
+
+        private static UserDto MapToDto(User user, int projectCount)
+        {
             return new UserDto
             {
                 Id = user.Id,
+                TenantId = user.TenantId,
                 Username = user.Username,
                 Name = user.Name,
-                ProjectCount = user.Projects?.Count ?? 0
+                ProjectCount = projectCount
             };
         }
     }

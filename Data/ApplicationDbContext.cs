@@ -51,15 +51,15 @@ public class ApplicationDbContext : DbContext
             .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<User>()
-            .HasQueryFilter(u => _tenantProvider.TenantId != null && u.TenantId == _tenantProvider.TenantId.Value);
+            .HasQueryFilter(u => _tenantProvider.TenantId != null && u.TenantId == _tenantProvider.TenantId.GetValueOrDefault());
 
         modelBuilder.Entity<Project>()
-            .HasQueryFilter(p => _tenantProvider.TenantId != null && p.TenantId == _tenantProvider.TenantId.Value);
+            .HasQueryFilter(p => _tenantProvider.TenantId != null && p.TenantId == _tenantProvider.TenantId.GetValueOrDefault());
 
         modelBuilder.Entity<Skill>()
-            .HasQueryFilter(s => _tenantProvider.TenantId != null && s.TenantId == _tenantProvider.TenantId.Value);
+            .HasQueryFilter(s => _tenantProvider.TenantId != null && s.TenantId == _tenantProvider.TenantId.GetValueOrDefault());
 
         modelBuilder.Entity<Technology>()
-            .HasQueryFilter(t => _tenantProvider.TenantId != null && t.TenantId == _tenantProvider.TenantId.Value);
+            .HasQueryFilter(t => _tenantProvider.TenantId != null && t.TenantId == _tenantProvider.TenantId.GetValueOrDefault());
     }
 }
