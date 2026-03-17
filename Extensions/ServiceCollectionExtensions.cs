@@ -12,9 +12,11 @@ namespace portfolio_api.Extensions
     {
         public static IServiceCollection AddAppAuthentication(this IServiceCollection services, IConfiguration configuration)
         {
-            var jwtKey = configuration["Jwt:Key"]
-                ?? Environment.GetEnvironmentVariable("JWT_SECRET")
-                ?? Environment.GetEnvironmentVariable("API_KEY");
+            var jwtKey = configuration["Jwt:Key"];
+            if (string.IsNullOrWhiteSpace(jwtKey))
+                jwtKey = Environment.GetEnvironmentVariable("JWT_SECRET");
+            if (string.IsNullOrWhiteSpace(jwtKey))
+                jwtKey = Environment.GetEnvironmentVariable("API_KEY");
 
             if (string.IsNullOrWhiteSpace(jwtKey))
                 throw new InvalidOperationException("JWT key no configurada");
