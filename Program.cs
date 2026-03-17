@@ -37,7 +37,9 @@ public static class Program
 
         }
 
-        app.UseHttpsRedirection();
+        // Solo redirigir HTTPS en desarrollo local — en Render/producción el proxy ya maneja HTTPS
+        if (app.Environment.IsDevelopment())
+            app.UseHttpsRedirection();
 
         app.UseCors("DefaultCors");
         app.UseAuthentication();
