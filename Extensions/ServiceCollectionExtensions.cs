@@ -99,6 +99,13 @@ namespace portfolio_api.Extensions
                             .AllowAnyMethod()
                             .AllowCredentials();
                     }
+                    else
+                    {
+                        // Sin orígenes configurados: permite cualquiera (solo desarrollo)
+                        policy.AllowAnyOrigin()
+                            .AllowAnyHeader()
+                            .AllowAnyMethod();
+                    }
                 });
             });
 
