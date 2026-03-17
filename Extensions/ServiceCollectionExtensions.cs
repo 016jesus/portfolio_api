@@ -22,14 +22,21 @@ namespace portfolio_api.Extensions
             var jwtIssuer = configuration["Jwt:Issuer"] ?? "portfolio_api";
             var jwtAudience = configuration["Jwt:Audience"] ?? "portfolio_api";
 
-            var googleClientId = configuration["Authentication:Google:ClientId"]
-                ?? Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID");
-            var googleClientSecret = configuration["Authentication:Google:ClientSecret"]
-                ?? Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET");
-            var githubClientId = configuration["Authentication:GitHub:ClientId"]
-                ?? Environment.GetEnvironmentVariable("GITHUB_CLIENT_ID");
-            var githubClientSecret = configuration["Authentication:GitHub:ClientSecret"]
-                ?? Environment.GetEnvironmentVariable("GITHUB_CLIENT_SECRET");
+            var googleClientId = configuration["Authentication:Google:ClientId"];
+            if (string.IsNullOrWhiteSpace(googleClientId))
+                googleClientId = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID");
+
+            var googleClientSecret = configuration["Authentication:Google:ClientSecret"];
+            if (string.IsNullOrWhiteSpace(googleClientSecret))
+                googleClientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET");
+
+            var githubClientId = configuration["Authentication:GitHub:ClientId"];
+            if (string.IsNullOrWhiteSpace(githubClientId))
+                githubClientId = Environment.GetEnvironmentVariable("GITHUB_CLIENT_ID");
+
+            var githubClientSecret = configuration["Authentication:GitHub:ClientSecret"];
+            if (string.IsNullOrWhiteSpace(githubClientSecret))
+                githubClientSecret = Environment.GetEnvironmentVariable("GITHUB_CLIENT_SECRET");
             
             var authBuilder = services.AddAuthentication(options =>
                 {

@@ -208,10 +208,13 @@ namespace portfolio_api.Controllers
 
         private async Task<ActionResult<LoginResponseDto>> HandleGitHubOAuth(string code, string? redirectUri)
         {
-            var clientId = _configuration["Authentication:GitHub:ClientId"]
-                ?? Environment.GetEnvironmentVariable("GITHUB_CLIENT_ID");
-            var clientSecret = _configuration["Authentication:GitHub:ClientSecret"]
-                ?? Environment.GetEnvironmentVariable("GITHUB_CLIENT_SECRET");
+            var clientId = _configuration["Authentication:GitHub:ClientId"];
+            if (string.IsNullOrWhiteSpace(clientId))
+                clientId = Environment.GetEnvironmentVariable("GITHUB_CLIENT_ID");
+
+            var clientSecret = _configuration["Authentication:GitHub:ClientSecret"];
+            if (string.IsNullOrWhiteSpace(clientSecret))
+                clientSecret = Environment.GetEnvironmentVariable("GITHUB_CLIENT_SECRET");
 
             if (string.IsNullOrWhiteSpace(clientId) || string.IsNullOrWhiteSpace(clientSecret))
                 return StatusCode(503, "GitHub OAuth no configurado");
@@ -289,10 +292,13 @@ namespace portfolio_api.Controllers
 
         private async Task<ActionResult<LoginResponseDto>> HandleGoogleOAuth(string code, string? redirectUri)
         {
-            var clientId = _configuration["Authentication:Google:ClientId"]
-                ?? Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID");
-            var clientSecret = _configuration["Authentication:Google:ClientSecret"]
-                ?? Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET");
+            var clientId = _configuration["Authentication:Google:ClientId"];
+            if (string.IsNullOrWhiteSpace(clientId))
+                clientId = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID");
+
+            var clientSecret = _configuration["Authentication:Google:ClientSecret"];
+            if (string.IsNullOrWhiteSpace(clientSecret))
+                clientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET");
 
             if (string.IsNullOrWhiteSpace(clientId) || string.IsNullOrWhiteSpace(clientSecret))
                 return StatusCode(503, "Google OAuth no configurado");
