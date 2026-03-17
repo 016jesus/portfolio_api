@@ -238,8 +238,14 @@ namespace portfolio_api.Controllers
                 return Unauthorized("No se pudo obtener el token de GitHub");
 
             var tokenJson = await tokenResponse.Content.ReadFromJsonAsync<JsonElement>();
-            var accessToken = tokenJson.GetProperty("access_token").GetString();
 
+            if (tokenJson.TryGetProperty("error", out var ghError))
+                return Unauthorized($"Error de GitHub: {ghError.GetString()}");
+
+            if (!tokenJson.TryGetProperty("access_token", out var accessTokenProp))
+                return Unauthorized("Token de GitHub inválido");
+
+            var accessToken = accessTokenProp.GetString();
             if (string.IsNullOrWhiteSpace(accessToken))
                 return Unauthorized("Token de GitHub inválido");
 
