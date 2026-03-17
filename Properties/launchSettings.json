@@ -25,18 +25,6 @@
       },
       "publishAllPorts": true,
       "useSSL": true
-    },
-    "Local_without_docker": {
-      "commandName": "Project",
-      "commandLineArgs": "Project",
-      "workingDirectory": "C:\\Users\\jesus\\source\\repos\\portfolio_api",
-      "launchUrl": "https://localhost:5001",
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development",
-        "ASPNETCORE_HTTP_PORTS": "8080"
-      },
-      "hotReloadEnabled": false,
-      "applicationUrl": "http://localhost:5000"
     }
   },
   "$schema": "https://json.schemastore.org/launchsettings.json"

@@ -85,6 +85,56 @@ namespace portfolio_api.Controllers
         }
 
         /// <summary>
+        /// Actualizar perfil del usuario autenticado
+        /// </summary>
+        [HttpPut("{id}/profile")]
+        [Authorize]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<UserDto>> UpdateProfile(Guid id, [FromBody] UpdateProfileDto dto)
+        {
+            try
+            {
+                var user = await _context.Users
+                    .IgnoreQueryFilters()
+                    .FirstOrDefaultAsync(u => u.Id == id);
+
+                if (user == null)
+                    return NotFound($"Usuario con ID {id} no encontrado");
+
+                if (dto.Username != user.Username)
+                {
+                    var existingUser = await _context.Users
+                        .IgnoreQueryFilters()
+                        .FirstOrDefaultAsync(u => u.Username == dto.Username);
+                    if (existingUser != null)
+                        return BadRequest("El username ya existe");
+                }
+
+                user.Username = dto.Username;
+                user.Name = dto.Name;
+                user.DisplayName = dto.DisplayName;
+                user.Bio = dto.Bio;
+                user.Website = dto.Website;
+                user.Location = dto.Location;
+                if (!string.IsNullOrWhiteSpace(dto.AvatarUrl))
+                    user.AvatarUrl = dto.AvatarUrl;
+
+                _context.Users.Update(user);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Perfil actualizado: {UserId}", id);
+                return Ok(MapToDto(user));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al actualizar perfil {UserId}", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error al actualizar perfil");
+            }
+        }
+
+        /// <summary>
         /// Obtener un usuario específico por ID o username
         /// </summary>
         [HttpGet("{value}")]
@@ -133,13 +183,14 @@ namespace portfolio_api.Controllers
                 if (existingUser != null)
                     return BadRequest("El username ya existe");
 
+                var hashedPassword = BCrypt.Net.BCrypt.HashPassword(createUserDto.Password);
                 var user = new User
                 {
                     Id = Guid.NewGuid(),
                     Username = createUserDto.Username,
                     Email = createUserDto.Email,
                     Name = createUserDto.Name,
-                    Password = createUserDto.Password,
+                    Password = hashedPassword,
                     TenantId = tenantId
                 };
 
@@ -165,36 +216,39 @@ namespace portfolio_api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<UserDto>> UpdateUser(Guid id, [FromBody] UpdateUserDto updateUserDto)
+        public async Task<ActionResult<UserDto>> UpdateUser(Guid id, [FromBody] UpdateProfileDto dto)
         {
             try
             {
-                if (_tenantProvider.TenantId == null)
-                    return BadRequest("TenantId requerido");
-
-                var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
+                var user = await _context.Users
+                    .IgnoreQueryFilters()
+                    .FirstOrDefaultAsync(u => u.Id == id);
 
                 if (user == null)
                     return NotFound($"Usuario con ID {id} no encontrado");
 
-                // Verificar si el nuevo username ya existe (y no es el del usuario actual)
-                if (updateUserDto.Username != user.Username)
+                if (dto.Username != user.Username)
                 {
                     var existingUser = await _context.Users
-                        .FirstOrDefaultAsync(u => u.Username == updateUserDto.Username);
-
+                        .IgnoreQueryFilters()
+                        .FirstOrDefaultAsync(u => u.Username == dto.Username);
                     if (existingUser != null)
                         return BadRequest("El username ya existe");
                 }
 
-                user.Username = updateUserDto.Username;
-                user.Name = updateUserDto.Name;
+                user.Username = dto.Username;
+                user.Name = dto.Name;
+                user.DisplayName = dto.DisplayName;
+                user.Bio = dto.Bio;
+                user.Website = dto.Website;
+                user.Location = dto.Location;
+                if (!string.IsNullOrWhiteSpace(dto.AvatarUrl))
+                    user.AvatarUrl = dto.AvatarUrl;
 
                 _context.Users.Update(user);
                 await _context.SaveChangesAsync();
 
                 _logger.LogInformation("Usuario actualizado: {UserId}", id);
-
                 return Ok(MapToDto(user));
             }
             catch (Exception ex)
@@ -250,6 +304,15 @@ namespace portfolio_api.Controllers
                 TenantId = user.TenantId,
                 Username = user.Username,
                 Name = user.Name,
+                DisplayName = user.DisplayName,
+                AvatarUrl = user.AvatarUrl,
+                Bio = user.Bio,
+                Website = user.Website,
+                Location = user.Location,
+                GithubUsername = user.GithubUsername,
+                Email = user.Email,
+                Provider = user.Provider,
+                CreatedAt = user.CreatedAt,
                 ProjectCount = projectCount
             };
         }
