@@ -19,6 +19,7 @@ namespace portfolio_api.DTOs
         public string Token { get; set; } = string.Empty;
         public DateTime ExpiresAt { get; set; }
         public MeDto User { get; set; } = null!;
+        public bool IsNewUser { get; set; } = false;
     }
 
     public class OAuthLoginRequestDto

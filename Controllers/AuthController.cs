@@ -374,7 +374,9 @@ namespace portfolio_api.Controllers
                 .IgnoreQueryFilters()
                 .FirstOrDefaultAsync(u => u.Email == email);
 
-            if (user == null)
+            var isNewUser = user == null;
+
+            if (isNewUser)
             {
                 // Asegurar username único
                 var baseUsername = username;
@@ -407,7 +409,7 @@ namespace portfolio_api.Controllers
             else
             {
                 // Actualizar datos que pueden haber cambiado
-                user.Provider = provider;
+                user!.Provider = provider;
                 user.OAuthAccessToken = accessToken;
                 if (!string.IsNullOrWhiteSpace(avatarUrl)) user.AvatarUrl = avatarUrl;
                 if (!string.IsNullOrWhiteSpace(bio)) user.Bio = bio;
@@ -418,14 +420,15 @@ namespace portfolio_api.Controllers
 
             await _context.SaveChangesAsync();
 
-            var token = GenerateJwtToken(user);
-            _logger.LogInformation("OAuth login exitoso para usuario {UserId} via {Provider}", user.Id, provider);
+            var token = GenerateJwtToken(user!);
+            _logger.LogInformation("OAuth login exitoso para usuario {UserId} via {Provider}", user!.Id, provider);
 
             return Ok(new LoginResponseDto
             {
                 Token = token,
                 ExpiresAt = DateTime.UtcNow.AddHours(8),
-                User = MapToMeDto(user)
+                User = MapToMeDto(user!),
+                IsNewUser = isNewUser
             });
         }
 
