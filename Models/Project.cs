@@ -30,6 +30,22 @@ public class Project
 
     public DateTime? EndDate { get; set; }
 
+    // GitHub integration fields
+    public long? GitHubRepoId { get; set; }
+
+    [MaxLength(300)]
+    public string? GitHubRepoName { get; set; }
+
+    [MaxLength(100)]
+    public string? Role { get; set; }
+
+    public DateTime? StartDate { get; set; }
+
+    public bool IsPinned { get; set; } = false;
+
+    public bool IsVisible { get; set; } = true;
+
+    public int DisplayOrder { get; set; } = 0;
 
     //clave foranea a User
     [Required]
