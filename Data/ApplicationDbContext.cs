@@ -61,5 +61,18 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<Technology>()
             .HasQueryFilter(t => _tenantProvider.TenantId != null && t.TenantId == _tenantProvider.TenantId.GetValueOrDefault());
+
+        // Default values for portfolio fields
+        modelBuilder.Entity<Project>()
+            .Property(p => p.IsVisible)
+            .HasDefaultValue(true);
+
+        modelBuilder.Entity<User>()
+            .Property(u => u.ShowGitHubReposAsDefault)
+            .HasDefaultValue(true);
+
+        modelBuilder.Entity<User>()
+            .Property(u => u.HiddenRepoIds)
+            .HasDefaultValue("[]");
     }
 }
