@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -46,6 +47,7 @@ namespace portfolio_api.Controllers
                 var projects = await _context.Projects
                     .Where(p => p.UserId == user.Id)
                     .Include(p => p.User)
+                    .Include(p => p.Technologies)
                     .ToListAsync();
 
                 return Ok(projects.Select(p => MapToDto(p)).ToList());
@@ -80,6 +82,7 @@ namespace portfolio_api.Controllers
 
                 var project = await _context.Projects
                     .Include(p => p.User)
+                    .Include(p => p.Technologies)
                     .FirstOrDefaultAsync(p => p.Id == id && p.UserId == user.Id);
 
                 if (project == null)
@@ -109,12 +112,13 @@ namespace portfolio_api.Controllers
 
                 if (user == null)
                     return NotFound("Usuario no encontrado");
-                
+
                 var userId = user.Id;
                 Console.WriteLine(userId);
                 var projects = await _context.Projects
                     .Where(p => p.UserId == userId)
                     .Include(p => p.User)
+                    .Include(p => p.Technologies)
                     .ToListAsync();
 
                 return Ok(projects.Select(p => MapToDto(p)).ToList());
@@ -159,6 +163,11 @@ namespace portfolio_api.Controllers
                     Url = createProjectDto.Url,
                     image = createProjectDto.Image,
                     CreationDate = DateTime.UtcNow,
+                    Role = createProjectDto.Role,
+                    StartDate = createProjectDto.StartDate,
+                    IsPinned = createProjectDto.IsPinned,
+                    IsVisible = createProjectDto.IsVisible,
+                    DisplayOrder = createProjectDto.DisplayOrder,
                     UserId = createProjectDto.UserId,
                     User = user,
                     TenantId = _tenantProvider.TenantId.Value
@@ -179,6 +188,67 @@ namespace portfolio_api.Controllers
         }
 
         /// <summary>
+        /// Crear un proyecto a partir de un repositorio de GitHub
+        /// </summary>
+        [HttpPost("from-repo")]
+        [Authorize]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        public async Task<ActionResult<ProjectDto>> CreateProjectFromRepo([FromBody] CreateProjectFromRepoDto dto)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!Guid.TryParse(userIdClaim, out var userId))
+                    return Unauthorized();
+
+                var user = await _context.Users
+                    .IgnoreQueryFilters()
+                    .FirstOrDefaultAsync(u => u.Id == userId);
+
+                if (user == null)
+                    return Unauthorized();
+
+                // Check if a project with same GitHubRepoId already exists for this user
+                var existing = await _context.Projects
+                    .IgnoreQueryFilters()
+                    .FirstOrDefaultAsync(p => p.UserId == userId && p.GitHubRepoId == dto.GitHubRepoId);
+
+                if (existing != null)
+                    return Conflict("Ya existe un proyecto con este repositorio de GitHub");
+
+                var project = new Project
+                {
+                    Id = Guid.NewGuid(),
+                    GitHubRepoId = dto.GitHubRepoId,
+                    GitHubRepoName = dto.GitHubRepoName,
+                    Title = dto.Title ?? dto.GitHubRepoName.Split('/').Last(),
+                    Description = dto.Description,
+                    Role = dto.Role,
+                    image = dto.Image,
+                    CreationDate = DateTime.UtcNow,
+                    IsVisible = true,
+                    UserId = userId,
+                    User = user,
+                    TenantId = user.TenantId
+                };
+
+                _context.Projects.Add(project);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Proyecto creado desde repo: {ProjectId} para usuario {UserId}", project.Id, userId);
+
+                return CreatedAtAction(nameof(GetProject), new { id = project.Id }, MapToDto(project));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al crear proyecto desde repositorio");
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error al crear proyecto desde repositorio");
+            }
+        }
+
+        /// <summary>
         /// Actualizar un proyecto existente
         /// </summary>
         [HttpPut("{id}")]
@@ -193,7 +263,9 @@ namespace portfolio_api.Controllers
                 if (_tenantProvider.TenantId == null)
                     return BadRequest("TenantId requerido");
 
-                var project = await _context.Projects.FirstOrDefaultAsync(p => p.Id == id);
+                var project = await _context.Projects
+                    .Include(p => p.Technologies)
+                    .FirstOrDefaultAsync(p => p.Id == id);
 
                 if (project == null)
                     return NotFound($"Proyecto con ID {id} no encontrado");
@@ -203,6 +275,17 @@ namespace portfolio_api.Controllers
                 project.Url = updateProjectDto.Url;
                 project.image = updateProjectDto.Image;
                 project.EndDate = updateProjectDto.EndDate;
+
+                if (updateProjectDto.Role != null)
+                    project.Role = updateProjectDto.Role;
+                if (updateProjectDto.StartDate != null)
+                    project.StartDate = updateProjectDto.StartDate;
+                if (updateProjectDto.IsPinned != null)
+                    project.IsPinned = updateProjectDto.IsPinned.Value;
+                if (updateProjectDto.IsVisible != null)
+                    project.IsVisible = updateProjectDto.IsVisible.Value;
+                if (updateProjectDto.DisplayOrder != null)
+                    project.DisplayOrder = updateProjectDto.DisplayOrder.Value;
 
                 _context.Projects.Update(project);
                 await _context.SaveChangesAsync();
@@ -215,6 +298,99 @@ namespace portfolio_api.Controllers
             {
                 _logger.LogError(ex, "Error al actualizar proyecto {ProjectId}", id);
                 return StatusCode(StatusCodes.Status500InternalServerError, "Error al actualizar proyecto");
+            }
+        }
+
+        /// <summary>
+        /// Actualizar visibilidad, pin y orden de un proyecto
+        /// </summary>
+        [HttpPut("{id}/visibility")]
+        [Authorize]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<ActionResult<ProjectDto>> UpdateProjectVisibility(Guid id, [FromBody] ProjectVisibilityDto dto)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!Guid.TryParse(userIdClaim, out var userId))
+                    return Unauthorized();
+
+                var project = await _context.Projects
+                    .IgnoreQueryFilters()
+                    .Include(p => p.Technologies)
+                    .FirstOrDefaultAsync(p => p.Id == id);
+
+                if (project == null)
+                    return NotFound($"Proyecto con ID {id} no encontrado");
+
+                if (project.UserId != userId)
+                    return Forbid();
+
+                project.IsVisible = dto.IsVisible;
+                project.IsPinned = dto.IsPinned;
+                project.DisplayOrder = dto.DisplayOrder;
+
+                _context.Projects.Update(project);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Visibilidad actualizada para proyecto: {ProjectId}", id);
+
+                return Ok(MapToDto(project));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al actualizar visibilidad del proyecto {ProjectId}", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error al actualizar visibilidad del proyecto");
+            }
+        }
+
+        /// <summary>
+        /// Reordenar múltiples proyectos
+        /// </summary>
+        [HttpPut("reorder")]
+        [Authorize]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<IActionResult> ReorderProjects([FromBody] List<ReorderProjectDto> reorderList)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!Guid.TryParse(userIdClaim, out var userId))
+                    return Unauthorized();
+
+                var projectIds = reorderList.Select(r => r.Id).ToList();
+                var projects = await _context.Projects
+                    .IgnoreQueryFilters()
+                    .Where(p => projectIds.Contains(p.Id))
+                    .ToListAsync();
+
+                // Verify all projects belong to authenticated user
+                if (projects.Any(p => p.UserId != userId))
+                    return Forbid();
+
+                if (projects.Count != reorderList.Count)
+                    return BadRequest("Algunos proyectos no fueron encontrados");
+
+                foreach (var item in reorderList)
+                {
+                    var project = projects.First(p => p.Id == item.Id);
+                    project.DisplayOrder = item.DisplayOrder;
+                }
+
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Proyectos reordenados para usuario {UserId}", userId);
+
+                return Ok(new { message = "Proyectos reordenados correctamente" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al reordenar proyectos");
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error al reordenar proyectos");
             }
         }
 
@@ -263,7 +439,15 @@ namespace portfolio_api.Controllers
                 CreationDate = project.CreationDate,
                 EndDate = project.EndDate,
                 UserId = project.UserId,
-                UserName_Display = project.User?.Name ?? "Desconocido"
+                UserName_Display = project.User?.Name ?? "Desconocido",
+                GitHubRepoId = project.GitHubRepoId,
+                GitHubRepoName = project.GitHubRepoName,
+                Role = project.Role,
+                StartDate = project.StartDate,
+                IsPinned = project.IsPinned,
+                IsVisible = project.IsVisible,
+                DisplayOrder = project.DisplayOrder,
+                Technologies = project.Technologies?.Select(t => t.Title).ToList() ?? new List<string>()
             };
         }
     }

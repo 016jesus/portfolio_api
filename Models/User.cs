@@ -48,6 +48,11 @@ namespace portfolio_api.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+        // GitHub integration preferences
+        public bool ShowGitHubReposAsDefault { get; set; } = true;
+
+        public string HiddenRepoIds { get; set; } = "[]";
+
         public ICollection<Project> Projects { get; set; } = new List<Project>();
 
         public ICollection<Skill> Skills { get; set; } = new List<Skill>();
