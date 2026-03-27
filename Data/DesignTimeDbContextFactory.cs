@@ -12,7 +12,7 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<Applicatio
 {
     public ApplicationDbContext CreateDbContext(string[] args)
     {
-        var connectionString = Environment.GetEnvironmentVariable("PORTGRES_CONNECTION")
+        var connectionString = Environment.GetEnvironmentVariable("POSTGRES_CONNECTION")
             ?? "Host=localhost;Database=portfolio_design;Username=postgres;Password=postgres";
 
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
