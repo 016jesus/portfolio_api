@@ -1,18 +1,8 @@
-version: '3.8'
-
 services:
-  postgres:
-    image: postgres:16
-    container_name: portfolio_postgres
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: PortfolioDB
+  api:
+    build: .
     ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - "80:80"
+    env_file:
+      - .env
     restart: unless-stopped
-
-volumes:
-  postgres_data:
