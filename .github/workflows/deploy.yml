@@ -2,7 +2,11 @@ name: Deploy to Elastic Beanstalk
 
 on:
   push:
+<<<<<<< HEAD
     branches: [master]
+=======
+    branches: [main]
+>>>>>>> 068efe9fc09fd05b2a2370ec181329eb22c2f141
 
 jobs:
   deploy:
