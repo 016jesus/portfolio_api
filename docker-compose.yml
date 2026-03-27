@@ -3,6 +3,14 @@ services:
     build: .
     ports:
       - "80:80"
-    env_file:
-      - /opt/elasticbeanstalk/deployment/env
+    environment:
+      - POSTGRES_CONNECTION
+      - JWT_SECRET
+      - CORS_ORIGINS
+      - GITHUB_CLIENT_ID
+      - GITHUB_CLIENT_SECRET
+      - GOOGLE_CLIENT_ID
+      - GOOGLE_CLIENT_SECRET
+      - API_KEY
+      - ASPNETCORE_ENVIRONMENT=Production
     restart: unless-stopped
