@@ -123,7 +123,7 @@ namespace portfolio_api.Extensions
 
         public static IServiceCollection AddAppDbContext(this IServiceCollection services)
         {
-            var connectionString = Environment.GetEnvironmentVariable("PORTGRES_CONNECTION");
+            var connectionString = Environment.GetEnvironmentVariable("POSTGRES_CONNECTION");
 
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseNpgsql(connectionString));
