@@ -1,8 +1,8 @@
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 WORKDIR /app
-ENV ASPNETCORE_URLS=http://+:8080
-EXPOSE 8080
+ENV ASPNETCORE_URLS=http://+:80
+EXPOSE 80
 
 
 # Esta fase se usa para compilar el proyecto de servicio
