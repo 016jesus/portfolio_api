@@ -233,6 +233,50 @@ namespace portfolio_api.Controllers
         }
 
         /// <summary>
+        /// Obtener skills públicas de un usuario
+        /// </summary>
+        [HttpGet("public/{username}/skills")]
+        [AllowAnonymous]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<IEnumerable<SkillDto>>> GetPublicSkills(string username)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(username))
+                    return BadRequest("El username es requerido");
+
+                var user = await _context.Users
+                    .IgnoreQueryFilters()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(u => u.Username == username);
+
+                if (user == null)
+                    return NotFound("Usuario no encontrado");
+
+                var skills = await _context.Skills
+                    .IgnoreQueryFilters()
+                    .Where(s => s.UserId == user.Id && s.TenantId == user.TenantId)
+                    .AsNoTracking()
+                    .ToListAsync();
+
+                return Ok(skills.Select(s => new SkillDto
+                {
+                    Id = s.Id,
+                    Name = s.Name,
+                    Description = s.Description,
+                    UserId = s.UserId
+                }).ToList());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener skills públicas de {Username}", username);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error al obtener skills públicas");
+            }
+        }
+
+        /// <summary>
         /// Agregar un repositorio a la lista de ocultos
         /// </summary>
         [HttpPost("me/hidden-repos")]
