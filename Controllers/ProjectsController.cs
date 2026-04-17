@@ -40,12 +40,18 @@ namespace portfolio_api.Controllers
                 if (string.IsNullOrWhiteSpace(username))
                     return BadRequest("El username es requerido");
 
-                var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+                if (!Guid.TryParse(tenantId, out var tenantGuid))
+                    return BadRequest("TenantId inválido");
+
+                var user = await _context.Users
+                    .IgnoreQueryFilters()
+                    .FirstOrDefaultAsync(u => u.Username == username && u.TenantId == tenantGuid);
                 if (user == null)
                     return NotFound("Usuario no encontrado");
 
                 var projects = await _context.Projects
-                    .Where(p => p.UserId == user.Id)
+                    .IgnoreQueryFilters()
+                    .Where(p => p.UserId == user.Id && p.TenantId == tenantGuid)
                     .Include(p => p.User)
                     .Include(p => p.Technologies)
                     .ToListAsync();
@@ -108,15 +114,16 @@ namespace portfolio_api.Controllers
             try
             {
                 var user = await _context.Users
+                    .IgnoreQueryFilters()
                     .FirstOrDefaultAsync(u => u.Username == username);
 
                 if (user == null)
                     return NotFound("Usuario no encontrado");
 
                 var userId = user.Id;
-                Console.WriteLine(userId);
                 var projects = await _context.Projects
-                    .Where(p => p.UserId == userId)
+                    .IgnoreQueryFilters()
+                    .Where(p => p.UserId == userId && p.TenantId == user.TenantId)
                     .Include(p => p.User)
                     .Include(p => p.Technologies)
                     .ToListAsync();
